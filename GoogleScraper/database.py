@@ -258,9 +258,14 @@ def get_engine(config, path=None):
     Returns:
         The sqlalchemy engine.
     """
-    db_path = path if path else config.get('database_name', 'google_scraper') + '.db'
+    db_path = path or config.get('database_name', 'google_scraper') + '.db'
     echo = config.get('log_sqlalchemy', False)
-    engine = create_engine('sqlite:///' + db_path, echo=echo, connect_args={'check_same_thread': False})
+    engine = create_engine(
+        f'sqlite:///{db_path}',
+        echo=echo,
+        connect_args={'check_same_thread': False},
+    )
+
     Base.metadata.create_all(engine)
 
     return engine
@@ -276,11 +281,7 @@ def get_session(config, scoped=False, engine=None, path=None):
         autocommit=False,
     )
 
-    if scoped:
-        ScopedSession = scoped_session(session_factory)
-        return ScopedSession
-    else:
-        return session_factory
+    return scoped_session(session_factory) if scoped else session_factory
 
 
 def fixtures(config, session):

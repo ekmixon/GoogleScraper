@@ -107,10 +107,7 @@ def store_serp_result(serp, config):
 
     if outfile:
         data = row2dict(serp)
-        data['results'] = []
-        for link in serp.links:
-            data['results'].append(row2dict(link))
-
+        data['results'] = [row2dict(link) for link in serp.links]
         if output_format == 'json':
             # The problem here is, that we need to stream write the json data.
             outfile.write(data)
@@ -125,11 +122,10 @@ def store_serp_result(serp, config):
 
 def row2dict(obj):
     """Convert sql alchemy object to dictionary."""
-    d = {}
-    for column in obj.__table__.columns:
-        d[column.name] = str(getattr(obj, column.name))
-
-    return d
+    return {
+        column.name: str(getattr(obj, column.name))
+        for column in obj.__table__.columns
+    }
 
 
 def close_outfile():

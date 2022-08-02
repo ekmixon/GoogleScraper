@@ -32,27 +32,30 @@ def parse_proxy_file(fname):
     Raises:
         ValueError if no file with the path fname could be found.
     """
-    proxies = []
     path = os.path.join(os.getcwd(), fname)
-    if os.path.exists(path):
-        with open(path, 'r') as pf:
-            for line in pf.readlines():
-                if not (line.strip().startswith('#') or line.strip().startswith('//')):
-                    tokens = line.replace('\n', '').split(' ')
-                    try:
-                        proto = tokens[0]
-                        host, port = tokens[1].split(':')
-                    except:
-                        raise Exception(
-                            'Invalid proxy file. Should have the following format: {}'.format(parse_proxy_file.__doc__))
-                    if len(tokens) == 3:
-                        username, password = tokens[2].split(':')
-                        proxies.append(Proxy(proto=proto, host=host, port=port, username=username, password=password))
-                    else:
-                        proxies.append(Proxy(proto=proto, host=host, port=port, username='', password=''))
-        return proxies
-    else:
+    if not os.path.exists(path):
         raise ValueError('No such file/directory')
+    proxies = []
+    with open(path, 'r') as pf:
+        for line in pf:
+            if not line.strip().startswith(
+                '#'
+            ) and not line.strip().startswith('//'):
+                tokens = line.replace('\n', '').split(' ')
+                try:
+                    proto = tokens[0]
+                    host, port = tokens[1].split(':')
+                except:
+                    raise Exception(
+                        f'Invalid proxy file. Should have the following format: {parse_proxy_file.__doc__}'
+                    )
+
+                if len(tokens) == 3:
+                    username, password = tokens[2].split(':')
+                    proxies.append(Proxy(proto=proto, host=host, port=port, username=username, password=password))
+                else:
+                    proxies.append(Proxy(proto=proto, host=host, port=port, username='', password=''))
+    return proxies
 
 
 def get_proxies(host, user, password, database, port=3306, unix_socket=None):
@@ -78,10 +81,17 @@ def get_proxies(host, user, password, database, port=3306, unix_socket=None):
         cur = conn.cursor(pymysql.cursors.DictCursor)
         # Adapt this code for you to make it retrieving the proxies in the right format.
         cur.execute('SELECT host, port, username, password, protocol FROM proxies')
-        proxies = [Proxy(proto=s['protocol'], host=s['host'], port=s['port'],
-                         username=s['username'], password=s['password']) for s in cur.fetchall()]
+        return [
+            Proxy(
+                proto=s['protocol'],
+                host=s['host'],
+                port=s['port'],
+                username=s['username'],
+                password=s['password'],
+            )
+            for s in cur.fetchall()
+        ]
 
-        return proxies
     except Exception as e:
         logger.error(e)
         raise
@@ -96,8 +106,7 @@ def get_proxies_from_mysql_db(s):
     """
     pattern = re.compile(r'(?P<dbms>\w*?)://(?P<user>\w*?):(?P<pwd>.*?)@(?P<host>\w*?)/(?P<db>\w*)')
     found = pattern.search(s)
-    return get_proxies(found.group('host'), found.group('user'),
-                       found.group('pwd'), found.group('db'))
+    return get_proxies(found['host'], found['user'], found['pwd'], found['db'])
 
 
 def add_proxies_to_db(proxies, session):

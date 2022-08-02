@@ -46,18 +46,18 @@ search_input = browser.find_element_by_xpath('//*[@name="q"]')
 
 try:
     search_input.send_keys(keyword + Keys.ENTER)
-    print('Google search for "{}" successful! '.format(keyword))
+    print(f'Google search for "{keyword}" successful! ')
 except WebDriverException as e:
-    print('Cannot make a google search: {}'.format(e))
+    print(f'Cannot make a google search: {e}')
 
 time.sleep(1)
 
 try:
     all_links = browser.find_elements_by_css_selector('#center_col .g')
 except NoSuchElementException as e:
-    print('Cannot find serp page: {}'.format(e))
+    print(f'Cannot find serp page: {e}')
 
-print('Found {} results'.format(len(all_links)))
+print(f'Found {len(all_links)} results')
 
 # browser.save_screenshot('headless_chrome_test.png')
 # browser.quit()

@@ -41,9 +41,7 @@ def chunk_it(seq, num):
     Returns:
         A list of num chunks.
     """
-    if num >= len(seq):
-        num = len(seq)
-
+    num = min(num, len(seq))
     avg = len(seq) / float(num)
     out = []
     last = 0.0

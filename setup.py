@@ -5,9 +5,9 @@ import re
 from setuptools import setup
 
 version = re.search(
-    "^__version__\s*=\s*'(.*)'",
-    open('GoogleScraper/version.py').read(),
-    re.M).group(1)
+    "^__version__\s*=\s*'(.*)'", open('GoogleScraper/version.py').read(), re.M
+)[1]
+
 
 requirements = [r for r in open('requirements.txt', 'r').read().split('\n') if r]
 

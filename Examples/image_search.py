@@ -60,7 +60,7 @@ class FetchResource(threading.Thread):
                     f.write(content)
                 except Exception as e:
                     pass
-                print('[+] Fetched {}'.format(url))
+                print(f'[+] Fetched {url}')
 
 # make a directory for the results
 try:
@@ -71,7 +71,7 @@ except FileExistsError:
 # fire up 100 threads to get the images
 num_threads = 100
 
-threads = [FetchResource('images/', []) for i in range(num_threads)]
+threads = [FetchResource('images/', []) for _ in range(num_threads)]
 
 while image_urls:
     for t in threads:

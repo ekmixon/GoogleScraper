@@ -52,7 +52,7 @@ def get_GET_params_for_search_engine(query, search_engine, page_number=1, num_re
             search_params['start'] = str((page_number - 1) * int(num_results_per_page))
 
         if search_type == 'image':
-            search_params.update({
+            search_params |= {
                 'oq': query,
                 'site': 'imghp',
                 'tbm': 'isch',
@@ -60,21 +60,20 @@ def get_GET_params_for_search_engine(query, search_engine, page_number=1, num_re
                 # 'sa': 'X',
                 'biw': 1920,
                 'bih': 979,
-            })
+            }
+
         elif search_type == 'video':
-            search_params.update({
+            search_params |= {
                 'tbm': 'vid',
                 'source': 'lnms',
                 'sa': 'X',
                 'biw': 1920,
-                'bih': 881
-            })
+                'bih': 881,
+            }
+
         elif search_type == 'news':
-            search_params.update({
-                'tbm': 'nws',
-                'source': 'lnms',
-                'sa': 'X'
-            })
+            search_params |= {'tbm': 'nws', 'source': 'lnms', 'sa': 'X'}
+
 
     elif search_engine == 'yandex':
         search_params['text'] = query
@@ -193,7 +192,7 @@ class HttpScrape(SearchEngineScrape, threading.Timer):
 
     def proxy_check(self, proxy):
         assert self.proxy and self.requests, 'ScraperWorker needs valid proxy instance and requests library to make ' \
-                                             'the proxy check.'
+                                                 'the proxy check.'
 
         online = False
         status = 'Proxy check failed: {host}:{port} is not used while requesting'.format(**self.proxy.__dict__)
@@ -206,11 +205,11 @@ class HttpScrape(SearchEngineScrape, threading.Timer):
             except ValueError:
                 pass
         except self.requests.ConnectionError as e:
-            status = 'No connection to proxy server possible, aborting: {}'.format(e)
+            status = f'No connection to proxy server possible, aborting: {e}'
         except self.requests.Timeout as e:
-            status = 'Timeout while connecting to proxy server: {}'.format(e)
+            status = f'Timeout while connecting to proxy server: {e}'
         except self.requests.exceptions.RequestException as e:
-            status = 'Unknown exception: {}'.format(e)
+            status = f'Unknown exception: {e}'
 
         if 'ip' in ipinfo and ipinfo['ip']:
             online = True
@@ -276,15 +275,15 @@ class HttpScrape(SearchEngineScrape, threading.Timer):
                 params=self.search_params))
 
         except self.requests.ConnectionError as ce:
-            self.status = 'Network problem occurred {}'.format(ce)
+            self.status = f'Network problem occurred {ce}'
             success = False
         except self.requests.Timeout as te:
-            self.status = 'Connection timeout {}'.format(te)
+            self.status = f'Connection timeout {te}'
             success = False
         except self.requests.exceptions.RequestException as e:
             # In case of any http networking exception that wasn't caught
             # in the actual request, just end the worker.
-            self.status = 'Stopping scraping because {}'.format(e)
+            self.status = f'Stopping scraping because {e}'
         else:
             if not request.ok:
                 self.handle_request_denied(request.status_code)

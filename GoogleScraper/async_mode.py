@@ -48,19 +48,16 @@ class AsyncHttpScrape(object):
             async with session.get(url, params=self.params, headers=self.headers) as response:
 
                 if response.status != 200:
-                    self.status = 'not successful: ' + str(response.status)
+                    self.status = f'not successful: {str(response.status)}'
 
                 self.requested_at = datetime.datetime.utcnow()
 
-                logger.info('[+] {} requested keyword \'{}\' on {}. Response status: {}'.format(
-                    self.requested_by,
-                    self.query,
-                    self.search_engine_name,
-                    response.status))
+                logger.info(
+                    f"[+] {self.requested_by} requested keyword \'{self.query}\' on {self.search_engine_name}. Response status: {response.status}"
+                )
 
-                logger.debug('[i] URL: {} HEADERS: {}'.format(
-                    url,
-                    self.headers))
+
+                logger.debug(f'[i] URL: {url} HEADERS: {self.headers}')
 
                 if response.status == 200:
                     body = await response.text()
@@ -119,10 +116,7 @@ class AsyncScrapeScheduler(object):
             self.results = self.loop.run_until_complete(asyncio.wait([r() for r in self.requests]))
 
             for task in self.results[0]:
-                scrape = task.result()
-
-                if scrape:
-
+                if scrape := task.result():
                     if self.cache_manager:
                         self.cache_manager.cache_results(scrape.parser, scrape.query, scrape.search_engine_name, scrape.scrape_method,
                                       scrape.page_number)

@@ -52,14 +52,12 @@ def make_chunks(text):
     for sentence in sentences:
 
         if len(sentence) in range(25, 125):
-            chunks.append('"{}"'.format(sentence))
+            chunks.append(f'"{sentence}"')
         elif len(sentence) < 25:
             consume_next = True
             # just ignore this for now. Short sentences are not usable anyways.
         elif len(sentence) > 125:
-            chunks.extend(
-                ['"{}"'.format(s) for s in sentence.split(',') if len(s) > 25]
-            )
+            chunks.extend([f'"{s}"' for s in sentence.split(',') if len(s) > 25])
 
     return chunks
 
@@ -88,4 +86,4 @@ for serp in search.serps:
 
     # if the original query yielded some results and thus was found by google.
     if not serp.effective_query:
-        print('Found plagiarized content: "{}"'.format(serp.query))
+        print(f'Found plagiarized content: "{serp.query}"')

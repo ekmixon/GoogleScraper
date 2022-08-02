@@ -80,7 +80,7 @@ def check_detection(config, search_engine_name):
 
         try:
             # random query
-            search_input.send_keys('President of Finland'+ Keys.ENTER)
+            search_input.send_keys(f'President of Finland{Keys.ENTER}')
             status += 'Google Search successful! '
         except WebDriverException:
             status += 'Cannot make a google search! '
@@ -244,7 +244,7 @@ class SelScrape(SearchEngineScrape, threading.Thread):
         sleep(2)
 
         # Close current tab
-        browser.find_element_by_tag_name('body').send_keys(Keys.CONTROL + 'w')
+        browser.find_element_by_tag_name('body').send_keys(f'{Keys.CONTROL}w')
 
         # Put focus on current window which will be the window opener
         browser.switch_to_window(main_window)
@@ -266,7 +266,7 @@ class SelScrape(SearchEngineScrape, threading.Thread):
         try:
             self.webdriver.get(self.config.get('proxy_info_url'))
             try:
-                text = re.search(r'(\{.*?\})', self.webdriver.page_source, flags=re.DOTALL).group(0)
+                text = re.search(r'(\{.*?\})', self.webdriver.page_source, flags=re.DOTALL)[0]
                 ipinfo = json.loads(text)
             except ValueError as v:
                 logger.critical(v)
@@ -291,7 +291,11 @@ class SelScrape(SearchEngineScrape, threading.Thread):
         out what went wrong.
         """
         tempdir = tempfile.gettempdir()
-        location = os.path.join(tempdir, '{}_{}_debug_screenshot.png'.format(self.search_engine_name, self.browser_type))
+        location = os.path.join(
+            tempdir,
+            f'{self.search_engine_name}_{self.browser_type}_debug_screenshot.png',
+        )
+
         self.webdriver.get_screenshot_as_file(location)
 
     def _set_xvfb_display(self):
@@ -328,8 +332,7 @@ class SelScrape(SearchEngineScrape, threading.Thread):
             # https://engineering.21buttons.com/crawling-thousands-of-products-using-aws-lambda-80332e259de1
             chrome_options.add_argument("test-type")
             chrome_options.add_argument('--js-flags="--expose-gc --max-old-space-size=500"')
-            chrome_options.add_argument(
-                'user-agent={}'.format(self.user_agent))
+            chrome_options.add_argument(f'user-agent={self.user_agent}')
             chrome_options.add_argument('--enable-precise-memory-info')
             chrome_options.add_argument('--disable-default-apps')
             chrome_options.add_argument('--disable-extensions')
@@ -345,7 +348,9 @@ class SelScrape(SearchEngineScrape, threading.Thread):
 
             if self.proxy:
                 chrome_options.add_argument(
-                    '--proxy-server={}://{}:{}'.format(self.proxy.proto, self.proxy.host, self.proxy.port))
+                    f'--proxy-server={self.proxy.proto}://{self.proxy.host}:{self.proxy.port}'
+                )
+
 
             chromedriver_path = self.config.get('chromedriver_path')
             self.webdriver = webdriver.Chrome(executable_path=chromedriver_path,
@@ -367,8 +372,7 @@ class SelScrape(SearchEngineScrape, threading.Thread):
             options = FirefoxOptions()
             profile = webdriver.FirefoxProfile()
 
-            options.add_argument(
-                'user-agent={}'.format(self.user_agent))
+            options.add_argument(f'user-agent={self.user_agent}')
 
             if self.browser_mode == 'headless':
                 options.set_headless(headless=True)
@@ -425,37 +429,32 @@ class SelScrape(SearchEngineScrape, threading.Thread):
             MaliciousRequestDetected when there was not way to stp Google From denying our requests.
         """
         # selenium webdriver objects have no status code :/
-        if self.malicious_request_detected():
-
-            super().handle_request_denied('400')
+        if not self.malicious_request_detected():
+            return
+        super().handle_request_denied('400')
 
             # only solve when in non headless mode
-            if self.config.get('manual_captcha_solving', False) and self.config.get('browser_mode') != 'headless':
-                with self.captcha_lock:
-                    solution = input('Please solve the captcha in the browser! Enter any key when done...')
-                    try:
-                        self.search_input = WebDriverWait(self.webdriver, 7).until(
-                            EC.visibility_of_element_located(self._get_search_input_field()))
-                    except TimeoutException:
-                        raise MaliciousRequestDetected('Requesting with this IP address or cookies is not possible at the moment.')
+        if self.config.get('manual_captcha_solving', False) and self.config.get('browser_mode') != 'headless':
+            with self.captcha_lock:
+                solution = input('Please solve the captcha in the browser! Enter any key when done...')
+                try:
+                    self.search_input = WebDriverWait(self.webdriver, 7).until(
+                        EC.visibility_of_element_located(self._get_search_input_field()))
+                except TimeoutException:
+                    raise MaliciousRequestDetected('Requesting with this IP address or cookies is not possible at the moment.')
 
-            elif self.config.get('captcha_solving_service', False):
-                # implement request to manual captcha solving service such
-                # as https://2captcha.com/
-                pass
-            else:
-                # Just wait until the user solves the captcha in the browser window
-                # 10 hours if needed :D
-                logger.info('Waiting for user to solve captcha')
-                return self._wait_until_search_input_field_appears(10 * 60 * 60)
+        elif not self.config.get('captcha_solving_service', False):
+            # Just wait until the user solves the captcha in the browser window
+            # 10 hours if needed :D
+            logger.info('Waiting for user to solve captcha')
+            return self._wait_until_search_input_field_appears(10 * 60 * 60)
 
 
     def _get_search_param_values(self):
         search_param_values = {}
         if self.search_engine_name in self.search_params:
             for param_key in self.search_params[self.search_engine_name]:
-                cfg = self.config.get(param_key, None)
-                if cfg:
+                if cfg := self.config.get(param_key, None):
                     search_param_values[param_key] = cfg
         return search_param_values
 
@@ -531,10 +530,7 @@ class SelScrape(SearchEngineScrape, threading.Thread):
             try:
                 element.click()
             except WebDriverException:
-                # See http://stackoverflow.com/questions/11908249/debugging-element-is-not-clickable-at-point-error
-                # first move mouse to the next element, some times the element is not visibility, like blekko.com
-                selector = self.next_page_selectors[self.search_engine_name]
-                if selector:
+                if selector := self.next_page_selectors[self.search_engine_name]:
                     try:
                         next_element = WebDriverWait(self.webdriver, 5).until(
                             EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
@@ -549,10 +545,7 @@ class SelScrape(SearchEngineScrape, threading.Thread):
                         pass
 
         # wait until the next page was loaded
-        if not next_url:
-            return False
-        else:
-            return next_url
+        return next_url or False
 
 
     def _find_next_page_element(self):
@@ -572,7 +565,7 @@ class SelScrape(SearchEngineScrape, threading.Thread):
                 # next page (for example because the search query is to unique)
                 # we need to return false
                 self._save_debug_screenshot()
-                logger.warning('{}: Cannot locate next page element: {}'.format(self.name, str(e)))
+                logger.warning(f'{self.name}: Cannot locate next page element: {str(e)}')
                 return False
 
             return self.webdriver.find_element_by_css_selector(selector)
@@ -592,35 +585,32 @@ class SelScrape(SearchEngineScrape, threading.Thread):
 
         if self.search_type == 'normal':
 
-            if self.search_engine_name == 'google':
-                selector = '#navcnt td.cur'
-            elif self.search_engine_name == 'yandex':
-                selector = '.pager__item_current_yes'
-            elif self.search_engine_name == 'bing':
-                selector = 'nav li a.sb_pagS'
-            elif self.search_engine_name == 'yahoo':
-                selector = '.compPagination strong'
-            elif self.search_engine_name == 'baidu':
-                selector = '#page .fk_cur + .pc'
-            elif self.search_engine_name == 'duckduckgo':
-                # no pagination in duckduckgo
-                pass
-            elif self.search_engine_name == 'ask':
+            if self.search_engine_name == 'ask':
                 selector = '#paging .pgcsel .pg'
 
+            elif self.search_engine_name == 'baidu':
+                selector = '#page .fk_cur + .pc'
+            elif self.search_engine_name == 'bing':
+                selector = 'nav li a.sb_pagS'
+            elif self.search_engine_name == 'google':
+                selector = '#navcnt td.cur'
+            elif self.search_engine_name == 'yahoo':
+                selector = '.compPagination strong'
+            elif self.search_engine_name == 'yandex':
+                selector = '.pager__item_current_yes'
             if self.search_engine_name == 'duckduckgo':
                 time.sleep(1.5)
             else:
 
                 try:
-                    WebDriverWait(self.webdriver, 5).\
-            until(EC.text_to_be_present_in_element((By.CSS_SELECTOR, selector), str(self.page_number)))
+                        WebDriverWait(self.webdriver, 5).\
+                    until(EC.text_to_be_present_in_element((By.CSS_SELECTOR, selector), str(self.page_number)))
                 except TimeoutException as e:
                     self._save_debug_screenshot()
-                    logger.warning('Pagenumber={} did not appear in serp. Maybe there is only one result for this query?'.format(self.page_number))
+                    logger.warning(
+                        f'Pagenumber={self.page_number} did not appear in serp. Maybe there is only one result for this query?'
+                    )
 
-        elif self.search_type == 'image':
-            self.wait_until_title_contains_keyword()
 
         else:
             self.wait_until_title_contains_keyword()
@@ -629,8 +619,11 @@ class SelScrape(SearchEngineScrape, threading.Thread):
         try:
             WebDriverWait(self.webdriver, 5).until(EC.title_contains(self.query))
         except TimeoutException:
-            logger.debug(SeleniumSearchError(
-                '{}: Keyword "{}" not found in title: {}'.format(self.name, self.query, self.webdriver.title)))
+            logger.debug(
+                SeleniumSearchError(
+                    f'{self.name}: Keyword "{self.query}" not found in title: {self.webdriver.title}'
+                )
+            )
 
 
     def build_search(self):
@@ -647,17 +640,17 @@ class SelScrape(SearchEngineScrape, threading.Thread):
         if self.search_engine_name == 'google':
             if num_results not in (10, 20, 30, 50, 100):
                 raise Exception('num_results_per_page for selenium mode and search engine Google must be in (10, 20, 30, 50, 100)')
-            starting_url += 'num={}'.format(num_results)
+            starting_url += f'num={num_results}'
 
         elif self.search_engine_name == 'bing':
             if num_results not in range(1, 100):
                 raise Exception('num_results_per_page for selenium mode and search engine Bing must be in range(1, 100)')
-            starting_url += 'count={}'.format(num_results)
+            starting_url += f'count={num_results}'
 
         elif self.search_engine_name == 'yahoo':
             if num_results not in range(1, 100):
                 raise Exception('num_results_per_page for selenium mode and search engine Yahoo must be in range(1, 100)')
-            starting_url += 'n={}'.format(num_results)
+            starting_url += f'n={num_results}'
 
         self.webdriver.get(starting_url)
 
@@ -713,7 +706,10 @@ class SelScrape(SearchEngineScrape, threading.Thread):
 
                 self.requested_at = datetime.datetime.utcnow()
             else:
-                logger.debug('{}: Cannot get handle to the input form for keyword {}.'.format(self.name, self.query))
+                logger.debug(
+                    f'{self.name}: Cannot get handle to the input form for keyword {self.query}.'
+                )
+
                 continue
 
             super().detection_prevention_sleep()
@@ -764,13 +760,13 @@ class SelScrape(SearchEngineScrape, threading.Thread):
         self._set_xvfb_display()
 
         if not self._get_webdriver():
-            raise Exception('{}: Aborting: No available selenium webdriver.'.format(self.name))
+            raise Exception(f'{self.name}: Aborting: No available selenium webdriver.')
 
         try:
             self.webdriver.set_window_size(400, 400)
             self.webdriver.set_window_position(400 * (self.browser_num % 4), 400 * (math.floor(self.browser_num // 4)))
         except WebDriverException as e:
-            logger.debug('Cannot set window size: {}'.format(e))
+            logger.debug(f'Cannot set window size: {e}')
 
         super().before_search()
 
@@ -837,9 +833,14 @@ class GoogleSelScrape(SelScrape):
             element = WebDriverWait(self.webdriver, 7).until(EC.presence_of_element_located((By.NAME, 'safeui')))
 
             try:
-                if self.config.get('google_selenium_safe_search', False):
-                    if self.webdriver.find_element_by_name('safeui').get_attribute('value') != 'on':
-                        self.webdriver.find_element_by_name('safeui').click()
+                if (
+                    self.config.get('google_selenium_safe_search', False)
+                    and self.webdriver.find_element_by_name(
+                        'safeui'
+                    ).get_attribute('value')
+                    != 'on'
+                ):
+                    self.webdriver.find_element_by_name('safeui').click()
 
                 try:
                     if self.config.get('google_selenium_personalization', False):
@@ -859,7 +860,10 @@ class GoogleSelScrape(SelScrape):
 
                 try:
                     region = self.config.get('google_selenium_region', 'US')
-                    self.webdriver.find_element_by_css_selector('div[data-value="{}"]'.format(region)).click()
+                    self.webdriver.find_element_by_css_selector(
+                        f'div[data-value="{region}"]'
+                    ).click()
+
                 except WebDriverException as e:
                     logger.warning('Cannot set region settings.')
 
@@ -868,10 +872,10 @@ class GoogleSelScrape(SelScrape):
                     num_results = self.config.get('google_selenium_num_results', 10)
                     self.webdriver.find_element_by_id('result_slider').click()
                     # reset
-                    for i in range(5):
+                    for _ in range(5):
                         self.webdriver.find_element_by_id('result_slider').send_keys(Keys.LEFT)
                     # move to desicred result
-                    for i in range((num_results//10)-1):
+                    for _ in range((num_results//10)-1):
                         time.sleep(.25)
                         self.webdriver.find_element_by_id('result_slider').send_keys(Keys.RIGHT)
                 except WebDriverException as e:

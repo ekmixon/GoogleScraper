@@ -58,8 +58,9 @@ def scrape_with_config(config):
     """
     if not isinstance(config, dict):
         raise ValueError(
-            'The config parameter needs to be a configuration dictionary. Given parameter has type: {}'.format(
-                type(config)))
+            f'The config parameter needs to be a configuration dictionary. Given parameter has type: {type(config)}'
+        )
+
 
     return main(return_results=True, parse_cmd_line=False, config_from_dict=config)
 

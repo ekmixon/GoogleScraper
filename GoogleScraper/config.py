@@ -43,13 +43,16 @@ def get_config(command_line_args=None, external_configuration_file=None, config_
         for k, v in d.items():
             setattr(config, k, v)
 
-    if external_configuration_file:
-        if os.path.exists(external_configuration_file) and external_configuration_file.endswith('.py'):
-            exernal_config = load_source('external_config', external_configuration_file)
-            members = inspect.getmembers(exernal_config)
-            if isinstance(members, list):
-                members = dict(members)
-            update_members(members)
+    if (
+        external_configuration_file
+        and os.path.exists(external_configuration_file)
+        and external_configuration_file.endswith('.py')
+    ):
+        exernal_config = load_source('external_config', external_configuration_file)
+        members = inspect.getmembers(exernal_config)
+        if isinstance(members, list):
+            members = dict(members)
+        update_members(members)
 
     if command_line_args:
         update_members(command_line_args)

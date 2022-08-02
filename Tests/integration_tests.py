@@ -49,22 +49,30 @@ class GoogleScraperIntegrationTestCase(unittest.TestCase):
                         c[key] += 1
             for key, value in c.items():
                 if key not in exclude_keys:
-                    assert (len(res) / int(value)) >= 9, key + ' has too many times a None value: ' + '{}/{}'.format(
-                        int(value), len(res))
+                    assert (len(res) / int(value)) >= 9, (
+                        f'{key} has too many times a None value: '
+                        + f'{int(value)}/{len(res)}'
+                    )
 
     def test_parse_google(self):
         parser = self.get_parser_for_file('google', 'data/uncompressed_serp_pages/abrakadabra_google_de_ip.html')
 
         assert '232.000.000 Ergebnisse' in parser.num_results_for_query
         assert len(parser.search_results['results']) == 12, len(parser.search_results)
-        assert all([v['visible_link'] for v in parser.search_results['results']])
-        assert all([v['link'] for v in parser.search_results['results']])
+        assert all(v['visible_link'] for v in parser.search_results['results'])
+        assert all(v['link'] for v in parser.search_results['results'])
         self.assert_around_10_results_with_snippets(parser)
-        assert any(['www.extremnews.com' in v['visible_link'] for v in parser.search_results[
-            'results']]), 'Theres a link in this serp page with visible url "www.extremnews.com"'
         assert any(
-            ['er Noise-Rock-Band Sonic Youth und wurde' in v['snippet'] for v in parser.search_results['results'] if
-             v['snippet']]), 'Specific string not found in snippet.'
+            'www.extremnews.com' in v['visible_link']
+            for v in parser.search_results['results']
+        ), 'Theres a link in this serp page with visible url "www.extremnews.com"'
+
+        assert any(
+            'er Noise-Rock-Band Sonic Youth und wurde' in v['snippet']
+            for v in parser.search_results['results']
+            if v['snippet']
+        ), 'Specific string not found in snippet.'
+
         self.assert_atleast90percent_of_items_are_not_None(parser)
 
     def test_parse_bing(self):
@@ -73,11 +81,14 @@ class GoogleScraperIntegrationTestCase(unittest.TestCase):
 
         assert '16.900.000 results' == parser.num_results_for_query
         assert len(parser.search_results['results']) == 12, len(parser.search_results['results'])
-        assert all([v['visible_link'] for v in parser.search_results['results']])
-        assert all([v['link'] for v in parser.search_results['results']])
+        assert all(v['visible_link'] for v in parser.search_results['results'])
+        assert all(v['link'] for v in parser.search_results['results'])
         self.assert_around_10_results_with_snippets(parser)
-        assert any(['Hello Kitty Online Shop - Hello' in v['title'] for v in
-                    parser.search_results['results']]), 'Specific title not found in snippet.'
+        assert any(
+            'Hello Kitty Online Shop - Hello' in v['title']
+            for v in parser.search_results['results']
+        ), 'Specific title not found in snippet.'
+
         self.assert_atleast90percent_of_items_are_not_None(parser)
 
     def test_parse_yahoo(self):
@@ -88,26 +99,19 @@ class GoogleScraperIntegrationTestCase(unittest.TestCase):
         assert len(parser.search_results['results']) >= 10, len(parser.search_results['results'])
         assert len([v['visible_link'] for v in parser.search_results['results'] if
                     v['visible_link']]) == 10, 'Not 10 elements with a visible link in yahoo serp page'
-        assert all([v['link'] for v in parser.search_results['results']])
+        assert all(v['link'] for v in parser.search_results['results'])
         self.assert_around_10_results_with_snippets(parser)
         assert any(
-            [' crystalline water ice that falls from clouds. Since snow is composed of small ic' in v['snippet'] for v
-             in parser.search_results['results'] if v['snippet']]), 'Specific string not found in snippet.'
+            ' crystalline water ice that falls from clouds. Since snow is composed of small ic'
+            in v['snippet']
+            for v in parser.search_results['results']
+            if v['snippet']
+        ), 'Specific string not found in snippet.'
+
         self.assert_atleast90percent_of_items_are_not_None(parser)
 
     def test_parse_yandex(self):
         return
-        parser = self.get_parser_for_file('yandex', 'data/uncompressed_serp_pages/game_yandex_de_ip.html')
-
-        assert '2 029 580' in parser.num_results_for_query
-        assert len(parser.search_results['results']) == 10, len(parser.search_results['results'])
-        assert len([v['visible_link'] for v in parser.search_results['results'] if
-                    v['visible_link']]) == 10, 'Not 10 elements with a visible link in yandex serp page'
-        assert all([v['link'] for v in parser.search_results['results']])
-        self.assert_around_10_results_with_snippets(parser)
-        assert any(['n play games to compile games statist' in v['snippet'] for v in parser.search_results['results'] if
-                    v['snippet']]), 'Specific string not found in snippet.'
-        self.assert_atleast90percent_of_items_are_not_None(parser)
 
     def test_parse_baidu(self):
 
@@ -115,7 +119,7 @@ class GoogleScraperIntegrationTestCase(unittest.TestCase):
 
         assert '100,000,000' in parser.num_results_for_query
         assert len(parser.search_results['results']) >= 6, len(parser.search_results['results'])
-        assert all([v['link'] for v in parser.search_results['results']])
+        assert all(v['link'] for v in parser.search_results['results'])
         self.assert_around_10_results_with_snippets(parser, delta=5)
         self.assert_atleast90percent_of_items_are_not_None(parser)
 
@@ -132,7 +136,7 @@ class GoogleScraperIntegrationTestCase(unittest.TestCase):
         assert len(parser.search_results['results']) >= 10, len(parser.search_results['results'])
         assert len([v['visible_link'] for v in parser.search_results['results'] if
                     v['visible_link']]) == 10, 'Not 10 elements with a visible link in ask serp page'
-        assert all([v['link'] for v in parser.search_results['results']])
+        assert all(v['link'] for v in parser.search_results['results'])
         self.assert_around_10_results_with_snippets(parser)
         self.assert_atleast90percent_of_items_are_not_None(parser)
 
@@ -170,7 +174,7 @@ class GoogleScraperIntegrationTestCase(unittest.TestCase):
         }
         search = scrape_with_config(config)
 
-        assert os.path.exists(csv_outfile), '{} does not exist'.format(csv_outfile)
+        assert os.path.exists(csv_outfile), f'{csv_outfile} does not exist'
 
         reader = csv.reader(open(csv_outfile, 'rt'))
 
@@ -184,10 +188,13 @@ class GoogleScraperIntegrationTestCase(unittest.TestCase):
             if rownum == 0:
                 header = row
                 header_keys = set(row)
-                assert header_keys.issubset(set(csv_fieldnames)), 'Invalid CSV header: {}'.format(header)
+                assert header_keys.issubset(
+                    set(csv_fieldnames)
+                ), f'Invalid CSV header: {header}'
+
 
             for item in notnull:
-                assert row[header.index(item)], '{} has a item that has no value: {}'.format(item, row)
+                assert row[header.index(item)], f'{item} has a item that has no value: {row}'
 
         self.assertAlmostEqual(number_search_engines * 2 * 10, rownum, delta=30)
 
@@ -215,13 +222,13 @@ class GoogleScraperIntegrationTestCase(unittest.TestCase):
         }
         search = scrape_with_config(config)
 
-        assert os.path.exists(json_outfile), '{} does not exist'.format(json_outfile)
+        assert os.path.exists(json_outfile), f'{json_outfile} does not exist'
 
         file = open(json_outfile, 'r')
         try:
             results = json.load(file)
         except ValueError as e:
-            print('Cannot parse output json file {}. Reason: {}'.format(json_outfile, e))
+            print(f'Cannot parse output json file {json_outfile}. Reason: {e}')
             raise e
 
         # the items that should always have a value:
@@ -237,7 +244,7 @@ class GoogleScraperIntegrationTestCase(unittest.TestCase):
                         num_results += 1
 
                         for item in notnull:
-                            assert res[item], '{} has a item that has no value: {}'.format(item, res)
+                            assert res[item], f'{item} has a item that has no value: {res}'
 
         self.assertAlmostEqual(number_search_engines * 2 * 10, num_results, delta=30)
 
@@ -251,45 +258,51 @@ class GoogleScraperIntegrationTestCase(unittest.TestCase):
     def test_no_results_for_query_yandex(self):
         parser = self.get_parser_for_file('yandex', 'data/uncompressed_no_results_serp_pages/yandex.html')
 
-        assert parser.effective_query == 'food', 'Wrong effective query. {}'.format(parser.effective_query)
+        assert (
+            parser.effective_query == 'food'
+        ), f'Wrong effective query. {parser.effective_query}'
 
     def test_no_results_for_query_bing(self):
         parser = self.get_parser_for_file('bing', 'data/uncompressed_no_results_serp_pages/bing.html')
 
-        assert parser.effective_query == 'food', 'Wrong effective query. {}'.format(parser.effective_query)
+        assert (
+            parser.effective_query == 'food'
+        ), f'Wrong effective query. {parser.effective_query}'
 
     def test_no_results_for_query_ask(self):
         parser = self.get_parser_for_file('ask', 'data/uncompressed_no_results_serp_pages/ask.html')
 
-        assert parser.effective_query == 'food', 'Wrong effective query. {}'.format(parser.effective_query)
+        assert (
+            parser.effective_query == 'food'
+        ), f'Wrong effective query. {parser.effective_query}'
 
     ### test correct parsing of the current page number.
 
     def test_page_number_selector_yandex(self):
         parser = self.get_parser_for_file('yandex', 'data/page_number_selector/yandex_5.html')
-        assert parser.page_number == 5, 'Wrong page number. Got {}'.format(parser.page_number)
+        assert parser.page_number == 5, f'Wrong page number. Got {parser.page_number}'
 
     def test_page_number_selector_google(self):
         """Google is a bitch in testing this. While saving the html file, the selected
         page is set back to 1. So page_number is always one."""
         parser = self.get_parser_for_file('google', 'data/page_number_selector/google_8.html')
-        assert parser.page_number == 1, 'Wrong page number. Got {}'.format(parser.page_number)
+        assert parser.page_number == 1, f'Wrong page number. Got {parser.page_number}'
 
     def test_page_number_selector_bing(self):
         parser = self.get_parser_for_file('bing', 'data/page_number_selector/bing_5.html')
-        assert parser.page_number == 5, 'Wrong page number. Got {}'.format(parser.page_number)
+        assert parser.page_number == 5, f'Wrong page number. Got {parser.page_number}'
 
     def test_page_number_selector_yahoo(self):
         parser = self.get_parser_for_file('yahoo', 'data/page_number_selector/yahoo_3.html')
-        assert parser.page_number == 3, 'Wrong page number. Got {}'.format(parser.page_number)
+        assert parser.page_number == 3, f'Wrong page number. Got {parser.page_number}'
 
     def test_page_number_selector_baidu(self):
         parser = self.get_parser_for_file('baidu', 'data/page_number_selector/baidu_9.html')
-        assert parser.page_number == 9, 'Wrong page number. Got {}'.format(parser.page_number)
+        assert parser.page_number == 9, f'Wrong page number. Got {parser.page_number}'
 
     def test_page_number_selector_ask(self):
         parser = self.get_parser_for_file('ask', 'data/page_number_selector/ask_7.html')
-        assert parser.page_number == 7, 'Wrong page number. Got {}'.format(parser.page_number)
+        assert parser.page_number == 7, f'Wrong page number. Got {parser.page_number}'
 
     ### test all SERP object indicate no results for all search engines.
 
@@ -312,30 +325,40 @@ class GoogleScraperIntegrationTestCase(unittest.TestCase):
         assert search.number_search_queries == 1
         assert search.started_searching < search.stopped_searching
 
-        assert len(all_search_engines) == len(search.serps), 'Not enough results. Expected: {}, got {}'.format(
-            len(all_search_engines), len(search.serps))
+        assert len(all_search_engines) == len(
+            search.serps
+        ), f'Not enough results. Expected: {len(all_search_engines)}, got {len(search.serps)}'
+
 
         for serp in search.serps:
-            assert serp.has_no_results_for_query(), 'num_results must be 0 but is {}. {}'.format(serp.num_results,
-                                                                                                 serp.links)
+            assert (
+                serp.has_no_results_for_query()
+            ), f'num_results must be 0 but is {serp.num_results}. {serp.links}'
+
 
             # some search engine do alternative searches instead of yielding
             # nothing at all.
 
             if serp.search_engine_name in ('google', 'bing'):
-                assert serp.effective_query, '{} must have an effective query when a keyword has no results.'.format(
-                    serp.search_engine_name)
+                assert (
+                    serp.effective_query
+                ), f'{serp.search_engine_name} must have an effective query when a keyword has no results.'
 
     def test_no_results2_static(self):
 
         query = '"Find ich besser als einfach nur den Propheten zu zeichnen, denn das ist nur reine Provokation. Was Titanic macht ist Satire."'
 
         for search_engine in ('google', 'duckduckgo', 'bing', 'yahoo'):
-            parser = self.get_parser_for_file(search_engine, 'data/no_results_literal/{}.html'.format(search_engine),
-                                              query=query)
+            parser = self.get_parser_for_file(
+                search_engine,
+                f'data/no_results_literal/{search_engine}.html',
+                query=query,
+            )
 
-            assert parser.num_results == 0 or parser.effective_query, 'No results must be true for search engine {}! But got {} serp entries and effective query: {}.'.format(
-                search_engine, parser.num_results, parser.effective_query)
+
+            assert (
+                parser.num_results == 0 or parser.effective_query
+            ), f'No results must be true for search engine {search_engine}! But got {parser.num_results} serp entries and effective query: {parser.effective_query}.'
 
             ### test correct parsing of the number of results for the query..
 
@@ -359,7 +382,7 @@ class GoogleScraperIntegrationTestCase(unittest.TestCase):
         search = scrape_with_config(config)
 
         search = scrape_with_config(config)
-        config.update({'output_filename': csv_outfile_2})
+        config['output_filename'] = csv_outfile_2
         search = scrape_with_config(config)
 
         assert os.path.isfile(csv_outfile_1) and os.path.isfile(csv_outfile_2)

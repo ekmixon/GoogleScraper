@@ -81,10 +81,10 @@ class Parser():
             specific parser cannot handle the the settings.
         """
         self.searchtype = search_type
-        assert self.searchtype in self.search_types, 'search type "{}" is not supported in {}'.format(
-            self.searchtype,
-            self.__class__.__name__
-        )
+        assert (
+            self.searchtype in self.search_types
+        ), f'search type "{self.searchtype}" is not supported in {self.__class__.__name__}'
+
 
         self.query = query
         self.html = html
@@ -142,7 +142,7 @@ class Parser():
         self._parse_lxml(cleaner)
 
         # try to parse the number of results.
-        attr_name = self.searchtype + '_search_selectors'
+        attr_name = f'{self.searchtype}_search_selectors'
         selector_dict = getattr(self, attr_name, None)
 
         # get the appropriate css selectors for the num_results for the keyword
@@ -150,8 +150,10 @@ class Parser():
 
         self.num_results_for_query = self.first_match(num_results_selector, self.dom)
         if not self.num_results_for_query:
-            logger.debug('{}: Cannot parse num_results from serp page with selectors {}'.format(self.__class__.__name__,
-                                                                                       num_results_selector))
+            logger.debug(
+                f'{self.__class__.__name__}: Cannot parse num_results from serp page with selectors {num_results_selector}'
+            )
+
 
         # get the current page we are at. Sometimes we search engines don't show this.
         try:
@@ -162,8 +164,10 @@ class Parser():
         # let's see if the search query was shitty (no results for that query)
         self.effective_query = self.first_match(self.effective_query_selector, self.dom)
         if self.effective_query:
-            logger.debug('{}: There was no search hit for the search query. Search engine used {} instead.'.format(
-                self.__class__.__name__, self.effective_query))
+            logger.debug(
+                f'{self.__class__.__name__}: There was no search hit for the search query. Search engine used {self.effective_query} instead.'
+            )
+
         else:
             self.effective_query = ''
 
@@ -172,7 +176,10 @@ class Parser():
 
         # get the stuff that is of interest in SERP pages.
         if not selector_dict and not isinstance(selector_dict, dict):
-            raise InvalidSearchTypeException('There is no such attribute: {}. No selectors found'.format(attr_name))
+            raise InvalidSearchTypeException(
+                f'There is no such attribute: {attr_name}. No selectors found'
+            )
+
 
         for result_type, selector_class in selector_dict.items():
 
@@ -201,11 +208,10 @@ class Parser():
                     # You say we should use xpath expressions instead?
                     # Maybe you're right, but they are complicated when it comes to classes,
                     # have a look here: http://doc.scrapy.org/en/latest/topics/selectors.html
-                    serp_result = {}
-                    # key are for example 'link', 'snippet', 'visible-url', ...
-                    # selector is the selector to grab these items
-                    for key, selector in selectors_to_use.items():
-                        serp_result[key] = self.advanced_css(selector, result)
+                    serp_result = {
+                        key: self.advanced_css(selector, result)
+                        for key, selector in selectors_to_use.items()
+                    }
 
                     serp_result['rank'] = index + 1
 
@@ -233,20 +239,17 @@ class Parser():
                 value = element.xpath(self.css_to_xpath(selector.split('::')[0]))[0].text_content()
             except IndexError:
                 pass
+        elif match := re.search(r'::attr\((?P<attr>.*)\)$', selector):
+            attr = match['attr']
+            try:
+                value = element.xpath(self.css_to_xpath(selector.split('::')[0]))[0].get(attr)
+            except IndexError:
+                pass
         else:
-            match = re.search(r'::attr\((?P<attr>.*)\)$', selector)
-
-            if match:
-                attr = match.group('attr')
-                try:
-                    value = element.xpath(self.css_to_xpath(selector.split('::')[0]))[0].get(attr)
-                except IndexError:
-                    pass
-            else:
-                try:
-                    value = element.xpath(self.css_to_xpath(selector))[0].text_content()
-                except IndexError:
-                    pass
+            try:
+                value = element.xpath(self.css_to_xpath(selector))[0].text_content()
+            except IndexError:
+                pass
 
         return value
 
@@ -265,8 +268,7 @@ class Parser():
         for selector in selectors:
             if selector:
                 try:
-                    match = self.advanced_css(selector, element=element)
-                    if match:
+                    if match := self.advanced_css(selector, element=element):
                         return match
                 except IndexError as e:
                     pass
@@ -441,21 +443,21 @@ class GoogleParser(Parser):
         super().after_parsing()
 
         if self.searchtype == 'normal':
-            if self.num_results > 0:
-                self.no_results = False
-            elif self.num_results <= 0:
-                self.no_results = True
-
+            self.no_results = self.num_results <= 0
             if 'No results found for' in self.html or 'did not match any documents' in self.html:
                 self.no_results = True
 
             # finally try in the snippets
-            if self.no_results is True:
+            if self.no_results:
                 for key, i in self.iter_serp_items():
 
-                    if 'snippet' in self.search_results[key][i] and self.query:
-                        if self.query.replace('"', '') in self.search_results[key][i]['snippet']:
-                            self.no_results = False
+                    if (
+                        'snippet' in self.search_results[key][i]
+                        and self.query
+                        and self.query.replace('"', '')
+                        in self.search_results[key][i]['snippet']
+                    ):
+                        self.no_results = False
 
         clean_regexes = {
             'normal': r'/url\?q=(?P<url>.*?)&sa=U&ei=',
@@ -463,12 +465,10 @@ class GoogleParser(Parser):
         }
 
         for key, i in self.iter_serp_items():
-            result = re.search(
-                clean_regexes[self.searchtype],
-                self.search_results[key][i]['link']
-            )
-            if result:
-                self.search_results[key][i]['link'] = unquote(result.group('url'))
+            if result := re.search(
+                clean_regexes[self.searchtype], self.search_results[key][i]['link']
+            ):
+                self.search_results[key][i]['link'] = unquote(result['url'])
 
 
 class YandexParser(Parser):
@@ -549,8 +549,7 @@ class YandexParser(Parser):
             if not self.num_results_for_query:
                 substr = 'function() { var title = "%s —' % self.query
                 try:
-                    i = self.html.index(substr)
-                    if i:
+                    if i := self.html.index(substr):
                         self.num_results_for_query = re.search(r'— (.)*?"', self.html[i:i+len(self.query) + 150]).group()
                 except Exception as e:
                     logger.debug(str(e))
@@ -562,9 +561,10 @@ class YandexParser(Parser):
                         r'\{"href"\s*:\s*"(?P<url>.*?)"\}',
                         r'img_url=(?P<url>.*?)&'
                 ):
-                    result = re.search(regex, self.search_results[key][i]['link'])
-                    if result:
-                        self.search_results[key][i]['link'] = result.group('url')
+                    if result := re.search(
+                        regex, self.search_results[key][i]['link']
+                    ):
+                        self.search_results[key][i]['link'] = result['url']
                         break
 
 
@@ -658,16 +658,17 @@ class BingParser(Parser):
             self.no_results = False
             if self.no_results_text:
                 self.no_results = self.query in self.no_results_text \
-                    or 'Do you want results only for' in self.no_results_text
+                        or 'Do you want results only for' in self.no_results_text
 
         if self.searchtype == 'image':
             for key, i in self.iter_serp_items():
                 for regex in (
                         r'imgurl:"(?P<url>.*?)"',
                 ):
-                    result = re.search(regex, self.search_results[key][i]['link'])
-                    if result:
-                        self.search_results[key][i]['link'] = result.group('url')
+                    if result := re.search(
+                        regex, self.search_results[key][i]['link']
+                    ):
+                        self.search_results[key][i]['link'] = result['url']
                         break
 
 
@@ -757,10 +758,11 @@ class YahooParser(Parser):
                 for regex in (
                         r'&imgurl=(?P<url>.*?)&',
                 ):
-                    result = re.search(regex, self.search_results[key][i]['link'])
-                    if result:
+                    if result := re.search(
+                        regex, self.search_results[key][i]['link']
+                    ):
                         # TODO: Fix this manual protocol adding by parsing "rurl"
-                        self.search_results[key][i]['link'] = 'http://' + unquote(result.group('url'))
+                        self.search_results[key][i]['link'] = 'http://' + unquote(result['url'])
                         break
 
 
@@ -825,18 +827,21 @@ class BaiduParser(Parser):
         """
         super().after_parsing()
 
-        if self.search_engine == 'normal':
-            if len(self.dom.xpath(self.css_to_xpath('.hit_top_new'))) >= 1:
-                self.no_results = True
+        if (
+            self.search_engine == 'normal'
+            and len(self.dom.xpath(self.css_to_xpath('.hit_top_new'))) >= 1
+        ):
+            self.no_results = True
 
         if self.searchtype == 'image':
             for key, i in self.iter_serp_items():
                 for regex in (
                         r'&objurl=(?P<url>.*?)&',
                 ):
-                    result = re.search(regex, self.search_results[key][i]['link'])
-                    if result:
-                        self.search_results[key][i]['link'] = unquote(result.group('url'))
+                    if result := re.search(
+                        regex, self.search_results[key][i]['link']
+                    ):
+                        self.search_results[key][i]['link'] = unquote(result['url'])
                         break
 
 
@@ -891,10 +896,7 @@ class DuckduckgoParser(Parser):
             except:
                 pass
 
-            if self.num_results > 0:
-                self.no_results = False
-            elif self.num_results <= 0:
-                self.no_results = True
+            self.no_results = self.num_results <= 0
 
 
 class AskParser(Parser):
@@ -1001,7 +1003,7 @@ def get_parser_by_url(url):
     if re.search(r'^http[s]?://blekko', url):
         parser = BlekkoParser
     if not parser:
-        raise UnknowUrlException('No parser for {}.'.format(url))
+        raise UnknowUrlException(f'No parser for {url}.')
 
     return parser
 
@@ -1018,7 +1020,7 @@ def get_parser_by_search_engine(search_engine):
     Raises:
         NoParserForSearchEngineException if no parser could be found for the name.
     """
-    if search_engine == 'google' or search_engine == 'googleimg':
+    if search_engine in ['google', 'googleimg']:
         return GoogleParser
     elif search_engine == 'yandex':
         return YandexParser
@@ -1026,7 +1028,7 @@ def get_parser_by_search_engine(search_engine):
         return BingParser
     elif search_engine == 'yahoo':
         return YahooParser
-    elif search_engine == 'baidu' or search_engine == 'baiduimg':
+    elif search_engine in ['baidu', 'baiduimg']:
         return BaiduParser
     elif search_engine == 'duckduckgo':
         return DuckduckgoParser
@@ -1035,7 +1037,7 @@ def get_parser_by_search_engine(search_engine):
     elif search_engine == 'blekko':
         return BlekkoParser
     else:
-        raise NoParserForSearchEngineException('No such parser for "{}"'.format(search_engine))
+        raise NoParserForSearchEngineException(f'No such parser for "{search_engine}"')
 
 
 def parse_serp(html='', query='', search_engine='google'):
@@ -1076,7 +1078,7 @@ if __name__ == '__main__':
     """
     import requests
 
-    assert len(sys.argv) >= 2, 'Usage: {} url/file'.format(sys.argv[0])
+    assert len(sys.argv) >= 2, f'Usage: {sys.argv[0]} url/file'
     url = sys.argv[1]
     if os.path.exists(url):
         raw_html = open(url, 'r').read()
